@@ -20,7 +20,6 @@ class Product(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    monitored_products = relationship("MonitoredProduct", back_populates="product")
 
     def __repr__(self):
         return f"<Product(name='{self.name}', market='{self.market}', item_id='{self.item_id}')>" 
