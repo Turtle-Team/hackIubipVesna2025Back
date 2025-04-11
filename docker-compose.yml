@@ -1,0 +1,7 @@
+services:
+  backend:
+    build:
+      context: .
+    container_name: backend_iubip_vesna_2025
+    ports:
+      - 9667:9667
