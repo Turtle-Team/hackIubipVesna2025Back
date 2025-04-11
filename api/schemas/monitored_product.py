@@ -2,12 +2,11 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
-from .product import Product
 
 
 class MonitoredProductBase(BaseModel):
-    product_id: int
-    target_price: float
+    name: str
+    url: Optional[str] = None
 
 
 class MonitoredProductCreate(MonitoredProductBase):
@@ -15,14 +14,13 @@ class MonitoredProductCreate(MonitoredProductBase):
 
 
 class MonitoredProductUpdate(MonitoredProductBase):
-    product_id: Optional[int] = None
-    target_price: Optional[float] = None
+    name: Optional[str] = None
+    url: Optional[str] = None
 
 
 class MonitoredProduct(MonitoredProductBase):
     id: int
     user_id: int
-    product: Product
     created_at: datetime
     updated_at: Optional[datetime] = None
 
