@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Optional
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from .. import crud
 from ..schemas.product import *
@@ -83,4 +84,35 @@ def delete_product(
 ):
     if not crud.delete_product(db, product_id):
         raise HTTPException(status_code=404, detail="Product not found")
-    return None 
+    return None
+
+
+@router.get("/monitored/{monitored_product_id}/history", response_model=List[Product])
+def get_product_history(
+    monitored_product_id: int,
+    start_time: Optional[datetime] = Query(None, description="Start time for filtering"),
+    end_time: Optional[datetime] = Query(None, description="End time for filtering"),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: auth.UserAuth = Depends(security.get_current_user)
+):
+    """
+    Get product history for a specific monitored product within a time range.
+    """
+    products = crud.get_products_by_monitored_product_and_time_range(
+        db=db,
+        monitored_product_id=monitored_product_id,
+        start_time=start_time,
+        end_time=end_time,
+        skip=skip,
+        limit=limit
+    )
+    
+    if not products:
+        raise HTTPException(
+            status_code=404,
+            detail="No products found for the specified criteria"
+        )
+    
+    return products 
