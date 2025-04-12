@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from database.schemas.role import Role
 
+__all__ = ["create_role", "get_role", "delete_role", "update_role", "get_roles"]
 
 def create_role(db: Session, name: str):
     db_role = Role(name=name)

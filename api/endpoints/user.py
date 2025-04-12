@@ -20,7 +20,6 @@ def create_user(user: UserCreate, db: Session = Depends(get_db),
 def get_users(db: Session = Depends(get_db), current_user: auth.UserAuth = Depends(security.get_current_user)):
     return crud.get_users(db)
 
-
 @router.get("/{user_id}", response_model=UserGet)
 def get_user(user_id: int, db: Session = Depends(get_db),
              current_user: auth.UserAuth = Depends(security.get_current_user)):

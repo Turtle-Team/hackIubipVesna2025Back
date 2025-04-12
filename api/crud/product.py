@@ -2,6 +2,12 @@ from sqlalchemy.orm import Session
 
 from database.schemas.product import Product
 
+__all__ = ["get_products",
+           "create_product",
+           "update_product",
+           "delete_product",
+           "get_product",
+           "get_product_by_market_and_item_id"]
 
 def create_product(db: Session, product_data: dict):
     db_product = Product(**product_data)
