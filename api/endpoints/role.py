@@ -2,23 +2,13 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from database import Session
 from .. import crud
 from ..schemas.role import *
 from ..schemas import auth
 from .. import security
+from ..utils.database import get_db, Session
 
 router = APIRouter()
-
-
-# Функция для получения сессии базы данных
-def get_db():
-    db = Session()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 # Эндпоинт для создания роли
 @router.post("/", response_model=RoleCreate)

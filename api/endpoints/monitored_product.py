@@ -1,24 +1,14 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
-from database import Session
 from .. import crud
 from ..schemas.monitored_product import *
 from ..schemas import auth
 from .. import security
+from ..utils.database import get_db, Session
 
 router = APIRouter()
-
-
-# Функция для получения сессии базы данных
-def get_db():
-    db = Session()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @router.post("/", response_model=MonitoredProduct)

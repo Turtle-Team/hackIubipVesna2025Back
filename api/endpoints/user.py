@@ -1,25 +1,14 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 
-from database import Session
 from .. import crud
 from .. import security
 from ..schemas import auth
 from ..schemas.user import *
+from ..utils.database import get_db, Session
 
 router = APIRouter()
-
-
-# Функция для получения сессии базы данных
-def get_db():
-    db = Session()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 @router.post("/", response_model=UserCreate)
 def create_user(user: UserCreate, db: Session = Depends(get_db),

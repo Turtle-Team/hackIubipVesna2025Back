@@ -1,22 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 
-from database import Session
 from .. import crud, security
 from ..schemas.auth import *
 import database.schemas.user
+from ..utils.database import get_db, Session
 
 router = APIRouter()
-
-
-# Функция для получения сессии базы данных
-def get_db():
-    db = Session()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 # Эндпоинт для регистрации пользователя
 @router.post("/register/", response_model=UserCreate)
