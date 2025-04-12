@@ -18,6 +18,7 @@ class User(Base):
 
     role = relationship("Role", back_populates="users")
     monitored_products = relationship("MonitoredProduct", back_populates="user", cascade="all, delete-orphan")
+    notification_settings = relationship("NotificationSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(login='{self.login}', role='{self.role}', id='{self.id}'')>"
