@@ -12,6 +12,7 @@ class MarketPlaceId(Enum):
     YANDEX_MARKET = 4
     ALIEXPRESS = 5
     MAGNIT_MARKET = 6
+    CDEK = 7
 
 
 class MarketName(Enum):
@@ -21,6 +22,7 @@ class MarketName(Enum):
     YANDEX_MARKET = 'YANDEX_MARKET'
     ALIEXPRESS = 'ALIEXPRESS'
     MAGNIT_MARKET = 'MAGNIT_MARKET'
+    CDEK = 'CDEK'
 
 
 class MarketPicture(Enum):
@@ -30,6 +32,7 @@ class MarketPicture(Enum):
     YANDEX_MARKET = 'https://yastatic.net/market-export/_/i/favicon/ymnew/558.png'
     ALIEXPRESS = 'https://yt3.googleusercontent.com/B3lrzrdjxXBXpgU5kEOBkCrPBzfZmiQXMU9xAMeDLfS97Nj_PEpkepisV-RhVgh1_ObVFCQ2S0g=s900-c-k-c0x00ffffff-no-rj'
     MAGNIT_MARKET = 'https://i.otzovik.com/objects/b/1140000/1135463.png'
+    CDEK = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShAOUBj2eERjAE4D9Ce33gQ2rclWUeaH90lw&s'
 
 
 class MarketPlace(BaseModel):
@@ -51,6 +54,7 @@ class MarketPlaceInfo(Enum):
                            name='ALIEXPRESS'),
                MarketPlace(code=MarketName.MAGNIT_MARKET, id=MarketPlaceId.MAGNIT_MARKET,
                            icon=MarketPicture.MAGNIT_MARKET, name='Магнит'),
+               MarketPlace(code=MarketName.CDEK, id=MarketPlaceId.CDEK, icon=MarketPicture.CDEK, name='СДЭК'),
                ]
 
 
