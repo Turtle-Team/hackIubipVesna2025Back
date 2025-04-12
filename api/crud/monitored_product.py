@@ -1,6 +1,10 @@
 from sqlalchemy.orm import Session
+import asyncio
+from datetime import datetime
 
 from database.schemas.monitored_product import MonitoredProduct
+from database.schemas.product import Product
+from ..utils import product_fetcher
 
 __all__ = ["get_all_monitored_products",
            "get_monitored_products",
@@ -11,11 +15,49 @@ __all__ = ["get_all_monitored_products",
 
 
 def create_monitored_product(db: Session, user_id: int, product_data: dict):
-    db_product = MonitoredProduct(user_id=user_id, **product_data)
-    db.add(db_product)
+    # If URL is provided, fetch product data
+    if product_data.get("url"):
+        # Run async function in sync context
+        product_info = asyncio.run(product_fetcher.fetch_product_by_url(product_data["url"]))
+        
+        if product_info:
+            # Update monitored product name with fetched name
+            product_data["name"] = product_info["name"]
+            
+            # Create monitored product
+            db_monitored_product = MonitoredProduct(user_id=user_id, **product_data)
+            db.add(db_monitored_product)
+            db.commit()
+            db.refresh(db_monitored_product)
+            
+            # Create product
+            product_data = {
+                "monitored_product_id": db_monitored_product.id,
+                "market": product_info["market"],
+                "item_id": product_info["item_id"],
+                "name": product_info["name"],
+                "url": product_info["url"],
+                "price": product_info["price"],
+                "rating": product_info["rating"],
+                "review_count": product_info["review_count"],
+                "buy_count": product_info["buy_count"],
+                "picture": product_info["picture"],
+                "time_ship": product_info["time_ship"],
+                "datetime_ship": datetime.fromisoformat(product_info["datetime_ship"].replace("Z", "+00:00")) if product_info.get("datetime_ship") else None,
+                "geo": product_info["geo"]
+            }
+            db_product = Product(**product_data)
+            db.add(db_product)
+            db.commit()
+            
+            return db_monitored_product
+    
+    # If no URL or failed to fetch, create just monitored product
+    db_monitored_product = MonitoredProduct(user_id=user_id, **product_data)
+    db.add(db_monitored_product)
     db.commit()
-    db.refresh(db_product)
-    return db_product
+    db.refresh(db_monitored_product)
+    return db_monitored_product
 
 
 def get_monitored_products(db: Session, user_id: int, skip: int = 0, limit: int = 100):
