@@ -15,6 +15,10 @@ __all__ = ["get_all_monitored_products",
 
 
 def create_monitored_product(db: Session, user_id: int, product_data: dict):
+    if 'http' in product_data.get('name'):
+        product_data['url'] = product_data['name']
+        product_data.pop('name')
+
     # If URL is provided, fetch product data
     if product_data.get("url"):
         # Run async function in sync context
