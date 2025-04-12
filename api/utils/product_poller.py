@@ -6,8 +6,8 @@ from typing import Dict, List
 from sqlalchemy.orm import Session
 from database import Session
 from database.schemas.product import Product
-from api.crud.monitored_product import get_all_monitored_products
-
+from ..crud.monitored_product import get_all_monitored_products
+from ..utils.product_fetcher import fetch_product_by_url
 
 class ProductPoller:
     def __init__(self):
@@ -26,7 +26,7 @@ class ProductPoller:
     async def fetch_products(self, product_name: str) -> Dict | None:
         params = {
             "name": product_name,
-            "offset": 100,
+            "offset": 10,
             "page_number": 1,
             "filter_by": "asc",
             "filter_name": "buy",
@@ -45,14 +45,18 @@ class ProductPoller:
             return None
 
     def save_products(self, db: Session, products_data: Dict, monitored_product_id: int):
-        if not products_data or "items" not in products_data:
+        if not products_data:
             return
+
+        # If we got data from URL, wrap it in items array to match the structure
+        if "items" not in products_data:
+            products_data = {"items": [products_data]}
 
         for item in products_data["items"]:
             product_data = {
                 "monitored_product_id": monitored_product_id,
                 "market": item["market"],
-                "item_id": item["item_id"],
+                "item_id": str(item["item_id"]),
                 "name": item["name"],
                 "url": item["url"],
                 "price": item["price"],
@@ -77,7 +81,13 @@ class ProductPoller:
                 monitored_products = get_all_monitored_products(db, skip=0, limit=100)
                 
                 for monitored_product in monitored_products:
-                    products_data = await self.fetch_products(monitored_product.name)
+                    if monitored_product.url:
+                        # If URL is available, use it exclusively
+                        products_data = await fetch_product_by_url(monitored_product.url)
+                    else:
+                        # Only use name search if no URL is available
+                        products_data = await self.fetch_products(monitored_product.name)
+                    
                     if products_data:
                         self.save_products(db, products_data, monitored_product.id)
                 
