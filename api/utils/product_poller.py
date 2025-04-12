@@ -1,4 +1,6 @@
 import asyncio
+import threading
+
 import aiohttp
 import json
 from datetime import datetime
@@ -102,5 +104,5 @@ class ProductPoller:
     def start(self):
         asyncio.run(self.poll_products())
 
-
-poller = ProductPoller().start()
+poller = ProductPoller()
+threading.Thread(target=poller.start).start()
