@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from .endpoints import user, role, auth, monitored_product, product
-
+from .utils import product_poller
 router = APIRouter()
 
 router.include_router(auth.router, prefix="/auth", tags=["auth"])
