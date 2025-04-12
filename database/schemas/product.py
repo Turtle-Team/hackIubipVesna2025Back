@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, BigInteger
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, VARCHAR
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -10,7 +10,7 @@ class Product(Base):
     id = Column(Integer, primary_key=True)
     monitored_product_id = Column(Integer, ForeignKey('monitored_products.id'), nullable=False)
     market = Column(Integer, nullable=False, default=0)
-    item_id = Column(BigInteger, nullable=False, default=0)
+    item_id = Column(VARCHAR(255), nullable=False, default='')
     name = Column(String(255), nullable=False, default='')
     url = Column(String(512), nullable=False, default='')
     price = Column(Float, nullable=False, default=0)

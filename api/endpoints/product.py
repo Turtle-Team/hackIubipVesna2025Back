@@ -108,7 +108,9 @@ def get_product_history(
         skip=skip,
         limit=limit
     )
-    
+    for product in products:
+        product.market = list(filter(lambda x: x.id.value == product.market, MarketPlaceInfo.markets.value))[-1]
+
     if not products:
         raise HTTPException(
             status_code=404,
