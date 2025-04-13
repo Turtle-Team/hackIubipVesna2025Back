@@ -1,17 +1,13 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from sqlalchemy.orm import Session
 from database.schemas.product import Product
-from database.schemas.notification import NotificationSettings
-from database.schemas.user import User
 from datetime import datetime, timedelta
 import time
 from typing import Protocol, Dict, List
 import pandas as pd
-from sqlalchemy import func
 import threading
-from database import Session, Base
+from .database import Session
 import setting
 
 class NotificationSender(Protocol):
