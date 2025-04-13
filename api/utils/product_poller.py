@@ -13,7 +13,7 @@ from ..utils.product_fetcher import fetch_product_by_url
 
 class ProductPoller:
     def __init__(self):
-        self.base_url = "http://192.168.0.222:7812/api/product/"
+        self.base_url = "http://45.155.207.232:7812/api/product/"
         self.session = None
 
     async def init_session(self):
@@ -104,5 +104,3 @@ class ProductPoller:
     def start(self):
         asyncio.run(self.poll_products())
 
-poller = ProductPoller()
-threading.Thread(target=poller.start).start()

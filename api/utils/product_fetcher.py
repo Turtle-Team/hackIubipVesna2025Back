@@ -7,7 +7,7 @@ async def fetch_product_by_url(url: str) -> Optional[Dict]:
     """
     Fetch product data from remote server by URL
     """
-    base_url = "http://192.168.0.222:7812/api/product/current_market/"
+    base_url = "http://45.155.207.232:7812/api/product/current_market/"
     encoded_url = quote(url)
     
     try:
