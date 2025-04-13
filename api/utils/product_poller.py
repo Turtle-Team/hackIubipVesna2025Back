@@ -1,15 +1,18 @@
 import asyncio
-import threading
 
 import aiohttp
-import json
 from datetime import datetime
-from typing import Dict, List
-from sqlalchemy.orm import Session
+from typing import Dict
 from database import Session
 from database.schemas.product import Product
-from ..crud.monitored_product import get_all_monitored_products
+from database.schemas.monitored_product import MonitoredProduct
+
 from ..utils.product_fetcher import fetch_product_by_url
+
+
+def get_all_monitored_products(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(MonitoredProduct).offset(skip).limit(limit).all()
+
 
 class ProductPoller:
     def __init__(self):
@@ -28,7 +31,7 @@ class ProductPoller:
     async def fetch_products(self, product_name: str) -> Dict | None:
         params = {
             "name": product_name,
-            "offset": 10,
+            "offset": 40,
             "page_number": 1,
             "filter_by": "asc",
             "filter_name": "buy",

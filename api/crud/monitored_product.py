@@ -6,8 +6,7 @@ from database.schemas.monitored_product import MonitoredProduct
 from database.schemas.product import Product
 from ..utils import product_fetcher, product_poller
 
-__all__ = ["get_all_monitored_products",
-           "get_monitored_products",
+__all__ = ["get_monitored_products",
            "get_monitored_product",
            "update_monitored_product",
            "delete_monitored_product",
@@ -99,9 +98,6 @@ def get_monitored_products(db: Session, user_id: int, skip: int = 0, limit: int 
         MonitoredProduct.user_id == user_id
     ).offset(skip).limit(limit).all()
 
-
-def get_all_monitored_products(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(MonitoredProduct).offset(skip).limit(limit).all()
 
 
 def get_monitored_product(db: Session, product_id: int, user_id: int):
