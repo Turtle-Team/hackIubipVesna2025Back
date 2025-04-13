@@ -1,8 +1,8 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class NotificationSettingsBase(BaseModel):
-    email: EmailStr
+    email: str
 
 
 class NotificationSettingsCreate(NotificationSettingsBase):
