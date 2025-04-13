@@ -162,12 +162,9 @@ class PriceMonitor:
         item_ids = [item[0] for item in item_ids]
         
         for item_id in item_ids:
-            if item_id not in self.last_check:
-                self.last_check[item_id] = current_time
-                continue
-
-            if current_time - self.last_check[item_id] < timedelta(minutes=15):
-                continue
+            if item_id in self.last_check:
+                if current_time - self.last_check[item_id] < timedelta(minutes=15):
+                    continue
 
             price_changes = self.get_price_changes(item_id)
             
@@ -176,12 +173,18 @@ class PriceMonitor:
                 if first_product and first_product.monitored_product:
                     user = first_product.monitored_product.user
                     if user and user.notification_settings:
-                        for sender in self.notification_senders:
-                            sender.send_notification(
-                                user.notification_settings.email,
-                                first_product.name,
-                                price_changes
+                        message = f"Изменение цен для товара {first_product.name}:\n\n"
+                        for change in price_changes:
+                            message += (
+                                f"Товар: {change['name']}\n"
+                                f"Старая цена: {change['price_min']} руб.\n"
+                                f"Новая цена: {change['price_current']} руб.\n"
+                                f"Снижение: {change['price_difference']} руб. ({change['price_difference_percent']:.2f}%)\n"
+                                f"Ссылка: {change['url']}\n\n"
                             )
+                        
+                        for sender in self.notification_senders:
+                            sender.send_notification(str(user.id), message)
 
             self.last_check[item_id] = current_time
 
@@ -193,7 +196,6 @@ def run_monitor(db: Session, notification_senders: List[NotificationSender]):
 
 # Создаем отправители уведомлений
 email_sender = EmailNotificationSender()
-
 telegram_sender = TelegramNotificationSender()
 
 def start_monitor():
