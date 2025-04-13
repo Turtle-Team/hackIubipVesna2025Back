@@ -8,6 +8,7 @@ class NotificationSettings(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    email = Column(String, nullable=False)
+    email = Column(String, nullable=True)
+    telegram_id = Column(String, nullable=True)
     
     user = relationship("User", back_populates="notification_settings")

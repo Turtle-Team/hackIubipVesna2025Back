@@ -1,77 +1,128 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from sqlalchemy.orm import Session
 from database.schemas.product import Product
+from database.schemas.notification import NotificationSettings
+from database.schemas.user import User
 from datetime import datetime, timedelta
 import time
 from typing import Protocol, Dict, List
 import pandas as pd
 import threading
-from .database import Session
+from database import Session
 import setting
+import telebot
+from telebot.types import Message
+from setting import TELEGRAM_BOT_TOKEN
 
 class NotificationSender(Protocol):
     def send_notification(self, email: str, category_name: str, price_changes: List[Dict]) -> None:
         ...
 
 class EmailNotificationSender:
-    def __init__(self, smtp_server: str, smtp_port: int, email: str, password: str):
-        self.smtp_server = smtp_server
-        self.smtp_port = smtp_port
-        self.email = email
-        self.password = password
+    def __init__(self):
+        self.smtp_server = setting.SMTP_SERVER
+        self.smtp_port = setting.SMTP_PORT
+        self.email = setting.EMAIL_USER
+        self.password = setting.EMAIL_PASSWORD
 
-    def send_notification(self, email: str, category_name: str, price_changes: List[Dict]) -> None:
-        if not price_changes:
-            return
-
-        msg = MIMEMultipart()
-        msg['From'] = self.email
-        msg['To'] = email
-        msg['Subject'] = f"Снижение цен у товара {category_name}"
-
-        body = f"""
-        Уважаемый пользователь,
-        
-        У товара {category_name} обнаружены следующие снижения цен:
-        
-        """
-        
-        for change in price_changes:
-            body += f"""
-            Товар: {change['name']}
-            Старая цена: {change['old_price']} руб.
-            Новая цена: {change['new_price']} руб.
-            Снижение: {change['price_difference']} руб. ({change['price_difference_percent']:.2f}%)
-            Ссылка: {change['url']}
-            
-            """
-        
-        body += """
-        С уважением,
-        Система мониторинга цен
-        """
-        
-        msg.attach(MIMEText(body, 'plain'))
-
+    def send_notification(self, user_id: str, message: str) -> bool:
+        db = Session()
         try:
+            notification_settings = db.query(NotificationSettings).filter(
+                NotificationSettings.user_id == user_id
+            ).first()
+
+            if not notification_settings or not notification_settings.email:
+                return False
+
+            msg = MIMEMultipart()
+            msg['From'] = self.email
+            msg['To'] = notification_settings.email
+            msg['Subject'] = "Уведомление о ценах"
+            msg.attach(MIMEText(message, 'plain'))
+
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.ehlo()
                 server.starttls()
-                server.ehlo()
                 server.login(self.email, self.password)
                 server.send_message(msg)
-        except smtplib.SMTPAuthenticationError as e:
-            print(f"Ошибка аутентификации при отправке email: {e}")
-            print("Проверьте настройки email в setting.py")
-            print("Для Gmail нужно использовать пароль приложения, а не обычный пароль")
+            return True
         except Exception as e:
-            print(f"Ошибка при отправке email: {e}")
+            print(f"Ошибка отправки email уведомления: {e}")
+            return False
+        finally:
+            db.close()
+
+class TelegramNotificationSender:
+    def __init__(self):
+        self.bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+        self.setup_handlers()
+
+    def setup_handlers(self):
+        @self.bot.message_handler(commands=['start'])
+        def handle_start(message: Message):
+            self.bot.reply_to(message, 
+                "Привет! Я бот для уведомлений о ценах.\n"
+                "Используйте команду /link для привязки аккаунта.")
+
+        @self.bot.message_handler(commands=['link'])
+        def handle_link(message: Message):
+            if len(message.text.split()) < 2:
+                self.bot.reply_to(message, "Пожалуйста, укажите ваш логин: /link <login>")
+                return
+            
+            login = message.text.split()[1]
+            db = Session()
+            try:
+                user = db.query(User).filter(User.login == login).first()
+                if not user:
+                    self.bot.reply_to(message, "Пользователь с таким логином не найден")
+                    return
+
+                notification_settings = db.query(NotificationSettings).filter(
+                    NotificationSettings.user_id == user.id
+                ).first()
+
+                if not notification_settings:
+                    notification_settings = NotificationSettings(
+                        user_id=user.id,
+                        telegram_id=str(message.chat.id)
+                    )
+                    db.add(notification_settings)
+                else:
+                    notification_settings.telegram_id = str(message.chat.id)
+
+                db.commit()
+                self.bot.reply_to(message, f"Аккаунт успешно привязан! Логин: {login}")
+            except Exception as e:
+                db.rollback()
+                self.bot.reply_to(message, f"Произошла ошибка: {str(e)}")
+            finally:
+                db.close()
+
+    def send_notification(self, user_id: str, message: str) -> bool:
+        db = Session()
+        try:
+            notification_settings = db.query(NotificationSettings).filter(
+                NotificationSettings.user_id == user_id
+            ).first()
+
+            if not notification_settings or not notification_settings.telegram_id:
+                return False
+                
+            self.bot.send_message(notification_settings.telegram_id, message)
+            return True
+        except Exception as e:
+            print(f"Ошибка отправки Telegram уведомления: {e}")
+            return False
+        finally:
+            db.close()
 
 class PriceMonitor:
-    def __init__(self, db: Session, notification_sender: NotificationSender):
+    def __init__(self, db: Session, notification_senders: List[NotificationSender]):
         self.db = db
-        self.notification_sender = notification_sender
+        self.notification_senders = notification_senders
         self.last_check = {}
 
     def get_price_changes(self, item_id: int) -> List[Dict]:
@@ -111,12 +162,9 @@ class PriceMonitor:
         item_ids = [item[0] for item in item_ids]
         
         for item_id in item_ids:
-            if item_id not in self.last_check:
-                self.last_check[item_id] = current_time
-                continue
-
-            if current_time - self.last_check[item_id] < timedelta(minutes=15):
-                continue
+            if item_id in self.last_check:
+                if current_time - self.last_check[item_id] < timedelta(minutes=15):
+                    continue
 
             price_changes = self.get_price_changes(item_id)
             
@@ -125,33 +173,36 @@ class PriceMonitor:
                 if first_product and first_product.monitored_product:
                     user = first_product.monitored_product.user
                     if user and user.notification_settings:
-                        self.notification_sender.send_notification(
-                            user.notification_settings.email,
-                            first_product.name,
-                            price_changes
-                        )
+                        message = f"Изменение цен для товара {first_product.name}:\n\n"
+                        for change in price_changes:
+                            message += (
+                                f"Товар: {change['name']}\n"
+                                f"Старая цена: {change['price_min']} руб.\n"
+                                f"Новая цена: {change['price_current']} руб.\n"
+                                f"Снижение: {change['price_difference']} руб. ({change['price_difference_percent']:.2f}%)\n"
+                                f"Ссылка: {change['url']}\n\n"
+                            )
+                        
+                        for sender in self.notification_senders:
+                            sender.send_notification(str(user.id), message)
 
             self.last_check[item_id] = current_time
 
-def run_monitor(db: Session, notification_sender: NotificationSender):
-    monitor = PriceMonitor(db, notification_sender)
+def run_monitor(db: Session, notification_senders: List[NotificationSender]):
+    monitor = PriceMonitor(db, notification_senders)
     while True:
         monitor.check_price_changes()
-        time.sleep(300)
+        time.sleep(60)
 
-# Создаем отправитель уведомлений
-notification_sender = EmailNotificationSender(
-    smtp_server=setting.SMTP_SERVER,
-    smtp_port=setting.SMTP_PORT,
-    email=setting.EMAIL_USER,
-    password=setting.EMAIL_PASSWORD
-)
+# Создаем отправители уведомлений
+email_sender = EmailNotificationSender()
+telegram_sender = TelegramNotificationSender()
 
 def start_monitor():
     """Запускает мониторинг цен в отдельном процессе"""
     db = Session()
     try:
-        run_monitor(db, notification_sender)
+        run_monitor(db, [email_sender, telegram_sender])
     finally:
         db.close()
 
